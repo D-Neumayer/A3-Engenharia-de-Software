@@ -36,13 +36,31 @@ jobs:
       run: |
         python -m unittest discover
 
+    - name: Verificar e criar nova tag se necessário
+      id: tag-check
+      run: |
+        # Obter a última tag
+        TAG_NAME=$(git tag | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n 1)
+        
+        # Se não houver tags, inicialize como v0.1.0
+        if [ -z "$TAG_NAME" ]; then
+          TAG_NAME="v0.1.0"
+        else
+          # Incrementar a patch version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${TAG_NAME:1}"
+          TAG_NAME="v$((MAJOR)).$((MINOR)).$((PATCH + 1))"
+        fi
+        
+        echo "Nova tag: $TAG_NAME"
+        echo "tag_name=$TAG_NAME" >> $GITHUB_ENV
+
     - name: Criar release
       id: release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Use o token pessoal aqui
       with:
-        tag_name: ${{ env.tag_name }}
+        tag_name: ${{ env.tag_name }}  # Certifique-se de que essa variável está definida corretamente
         release_name: "Release ${{ env.tag_name }}"
         draft: false
         prerelease: false
